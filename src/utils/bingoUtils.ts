@@ -1,11 +1,9 @@
 import { Phrase, BingoCard, BingoCell } from '../types/types';
 
-// Generate a unique ID
 export const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
 };
 
-// Shuffle an array using Fisher-Yates algorithm
 export const shuffleArray = <T>(array: T[]): T[] => {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -15,17 +13,13 @@ export const shuffleArray = <T>(array: T[]): T[] => {
   return newArray;
 };
 
-// Create a new bingo card with randomly selected phrases
 export const createBingoCard = (phrases: Phrase[], playerName: string, size = 5): BingoCard | null => {
-  // We need at least size^2 phrases to create a card
   if (phrases.length < size * size) {
     return null;
   }
 
-  // Shuffle and select phrases
   const shuffledPhrases = shuffleArray(phrases).slice(0, size * size);
   
-  // Create bingo cells
   const cells: BingoCell[] = shuffledPhrases.map(phrase => ({
     id: generateId(),
     phrase,
@@ -40,7 +34,25 @@ export const createBingoCard = (phrases: Phrase[], playerName: string, size = 5)
   };
 };
 
-// Check if a bingo card has a winning condition (row, column, or diagonal)
+export const createCustomBingoCard = (selectedPhrases: Phrase[], playerName: string): BingoCard | null => {
+  if (selectedPhrases.length !== 25) {
+    return null;
+  }
+
+  const cells: BingoCell[] = selectedPhrases.map(phrase => ({
+    id: generateId(),
+    phrase,
+    marked: false
+  }));
+
+  return {
+    id: generateId(),
+    playerName,
+    cells,
+    createdAt: Date.now()
+  };
+};
+
 export const checkWin = (card: BingoCard, size = 5): boolean => {
   const cells = card.cells;
   
