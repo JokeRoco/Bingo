@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Phrase, BingoCard } from '../types/types';
-import { loadPhrases, savePhrases, loadCards, saveCards } from '../utils/storage';
-import { generateId, createBingoCard, createCustomBingoCard } from '../utils/bingoUtils';
+import { Phrase, BingoCard, LeaderboardEntry } from '../types/types';
+import { loadPhrases, savePhrases, loadCards, saveCards, loadLeaderboard, saveLeaderboard } from '../utils/storage';
+import { generateId, createBingoCard, createCustomBingoCard, checkWin } from '../utils/bingoUtils';
 
 export const useBingoState = () => {
   const [phrases, setPhrases] = useState<Phrase[]>([]);
   const [cards, setCards] = useState<BingoCard[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [activeTab, setActiveTab] = useState<'create' | 'cards' | 'phrases'>('create');
 
   useEffect(() => {
     setPhrases(loadPhrases());
     setCards(loadCards());
+    setLeaderboard(loadLeaderboard());
   }, []);
 
   const addPhrase = (text: string) => {
@@ -67,10 +69,32 @@ export const useBingoState = () => {
   const toggleCellMark = (cardId: string, cellId: string) => {
     const updatedCards = cards.map(card => {
       if (card.id === cardId) {
+        if (card.completed) return card; // Don't allow changes if card is completed
+
         const updatedCells = card.cells.map(cell => 
           cell.id === cellId ? { ...cell, marked: !cell.marked } : cell
         );
-        return { ...card, cells: updatedCells };
+        
+        const updatedCard = { ...card, cells: updatedCells };
+        const hasWon = checkWin(updatedCard);
+        
+        if (hasWon && !card.completed) {
+          const completedAt = Date.now();
+          const newLeaderboardEntry: LeaderboardEntry = {
+            id: generateId(),
+            playerName: card.playerName,
+            completedAt,
+            cardId: card.id
+          };
+          
+          const updatedLeaderboard = [...leaderboard, newLeaderboardEntry];
+          setLeaderboard(updatedLeaderboard);
+          saveLeaderboard(updatedLeaderboard);
+          
+          return { ...updatedCard, completed: true, completedAt };
+        }
+        
+        return updatedCard;
       }
       return card;
     });
@@ -82,6 +106,7 @@ export const useBingoState = () => {
   return {
     phrases,
     cards,
+    leaderboard,
     activeTab,
     setActiveTab,
     addPhrase,
